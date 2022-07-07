@@ -541,7 +541,7 @@ var _gsap = require("gsap");
 var _gsapDefault = parcelHelpers.interopDefault(_gsap);
 // 导入dat.gui库
 var _datGui = require("dat.gui");
-// 目标 设置粗糙度与粗糙度贴图
+// 目标 设置粗糙度与粗糙度贴图 + 法线贴图
 // 1.创建场景
 const scene = new _three.Scene();
 // 2.创建相机（透视相机）
@@ -560,9 +560,11 @@ const doorAoTexture = textureLoader.load("./textures/door/ambientOcclusion.jpg")
 // 导入置换贴图
 const doorHeightTexture = textureLoader.load("./textures/door/height.jpg");
 // 导入粗糙度贴图
-const roughnessTexture = textureLoader.load("./texture/door/roughness.jpg");
+const roughnessTexture = textureLoader.load("./textures/door/roughness.jpg");
 // 导入金属贴图
-const metalnessTexture = textureLoader.load("./texture/door/metalness.jpg");
+const metalnessTexture = textureLoader.load("./textures/door/metalness.jpg");
+// 导入法线贴图
+const normalTexture = textureLoader.load("./textures/door/normal.jpg");
 // 4.添加物体
 // 创建几何体
 const cubeGeometry = new _three.BoxBufferGeometry(1, 1, 1, 100, 100, 100);
@@ -570,19 +572,21 @@ const cubeGeometry = new _three.BoxBufferGeometry(1, 1, 1, 100, 100, 100);
 const material = new _three.MeshStandardMaterial({
     color: "#ffff00",
     map: doorColorTexture,
-    // alphaMap:doorAlphaTexture, // 添加透明纹理
+    alphaMap: doorAlphaTexture,
     transparent: true,
     // opacity:0.5, //设置透明度
-    side: _three.DoubleSide,
+    // side: THREE.DoubleSide, //定义将要渲染哪一面 默认正面
     aoMap: doorAoTexture,
-    // aoMapIntensity:0.5, //环境遮挡效果的强度。默认值为1。零是不遮挡效果
+    aoMapIntensity: 1,
     displacementMap: doorHeightTexture,
-    displacementScale: 0.05,
+    displacementScale: 0.1,
     roughness: 1,
     roughnessMap: roughnessTexture,
-    metalness: 0,
-    metalnessMap: metalnessTexture
+    metalness: 1,
+    metalnessMap: metalnessTexture,
+    normalMap: normalTexture
 });
+material.side = _three.DoubleSide;
 //根据几何体，材质合成物体
 const cube = new _three.Mesh(cubeGeometry, material);
 //给cubeGeometry设置第二组uv
@@ -592,7 +596,7 @@ scene.add(cube);
 // 添加平面
 const planeGeometry = new _three.PlaneBufferGeometry(1, 1, 200, 200);
 const plane = new _three.Mesh(planeGeometry, material);
-plane.position.set(2, 0, 0);
+plane.position.set(1.5, 0, 0);
 // 添加到场景
 scene.add(plane);
 // console.log('plane: ', plane);
