@@ -541,7 +541,7 @@ var _gsap = require("gsap");
 var _gsapDefault = parcelHelpers.interopDefault(_gsap);
 // 导入dat.gui库
 var _datGui = require("dat.gui");
-// 目标 设置粗糙度与粗糙度贴图 + 法线贴图
+// 目标 环境贴图
 // 1.创建场景
 const scene = new _three.Scene();
 // 2.创建相机（透视相机）
@@ -550,58 +550,60 @@ const camera = new _three.PerspectiveCamera(75, window.innerWidth / window.inner
 // 3.设置相机的位置，并添加到场景中 x,y,z
 camera.position.set(0, 0, 10);
 scene.add(camera);
-// 导入纹理
-const textureLoader = new _three.TextureLoader();
-const doorColorTexture = textureLoader.load("./textures/door/color.jpg");
-// // 透明纹理
-const doorAlphaTexture = textureLoader.load("./textures/door/alpha.jpg");
-// 环境遮挡贴图
-const doorAoTexture = textureLoader.load("./textures/door/ambientOcclusion.jpg");
-// 导入置换贴图
-const doorHeightTexture = textureLoader.load("./textures/door/height.jpg");
-// 导入粗糙度贴图
-const roughnessTexture = textureLoader.load("./textures/door/roughness.jpg");
-// 导入金属贴图
-const metalnessTexture = textureLoader.load("./textures/door/metalness.jpg");
-// 导入法线贴图
-const normalTexture = textureLoader.load("./textures/door/normal.jpg");
+//创建div插入body中,用于显示加载进度
+var div = document.createElement("div");
+div.style.width = "200px";
+div.style.height = "200px";
+div.style.position = "fixed";
+div.style.right = 0;
+div.style.top = 0;
+div.style.color = "#fff";
+document.body.appendChild(div);
+let event = {};
+// 单张纹理图的加载
+event.onLoad = function() {
+    console.log("\u56FE\u7247\u52A0\u8F7D\u5B8C\u6210");
+};
+// 进度
+event.onProgress = function(url, itemsLoaded, itemsTotal) {
+    // console.log('e: ', e);
+    console.log("\u56FE\u7247\u52A0\u8F7D\u5B8C\u6210: ", url);
+    console.log("\u56FE\u7247\u52A0\u8F7D\u8FDB\u5EA6", itemsLoaded);
+    console.log("\u56FE\u7247\u52A0\u8F7D\u603B\u6570", itemsTotal);
+    let value = (itemsLoaded / itemsTotal * 100).toFixed(2) + "%";
+    console.log("\u52A0\u8F7D\u8FDB\u5EA6", value);
+    div.innerHTML = value;
+};
+// 错误
+event.onError = function(e) {
+    console.log("e: ", e);
+    console.log("\u56FE\u7247\u52A0\u8F7D\u9519\u8BEF");
+};
+// 设置加载管理器(管理所有的资源加载)
+const loadingManager = new _three.LoadingManager(event.onLoad, event.onProgress, event.onError);
+// 设置cube纹理加载器
+const cubeTextureLoader = new _three.CubeTextureLoader(loadingManager);
+// 加载环境贴图
+const envMapTexture = cubeTextureLoader.load([
+    "textures/environmentMaps/1/px.jpg",
+    "textures/environmentMaps/1/nx.jpg",
+    "textures/environmentMaps/1/py.jpg",
+    "textures/environmentMaps/1/ny.jpg",
+    "textures/environmentMaps/1/pz.jpg",
+    "textures/environmentMaps/1/nz.jpg", 
+]);
 // 4.添加物体
-// 创建几何体
-const cubeGeometry = new _three.BoxBufferGeometry(1, 1, 1, 100, 100, 100);
-//材质
+// 创建 球 几何体
+const sphereGeometry = new _three.SphereBufferGeometry(1, 20, 20);
+// 材质
 const material = new _three.MeshStandardMaterial({
-    color: "#ffff00",
-    map: doorColorTexture,
-    alphaMap: doorAlphaTexture,
-    transparent: true,
-    // opacity:0.5, //设置透明度
-    // side: THREE.DoubleSide, //定义将要渲染哪一面 默认正面
-    aoMap: doorAoTexture,
-    aoMapIntensity: 1,
-    displacementMap: doorHeightTexture,
-    displacementScale: 0.1,
-    roughness: 1,
-    roughnessMap: roughnessTexture,
-    metalness: 1,
-    metalnessMap: metalnessTexture,
-    normalMap: normalTexture
+    metalness: 0.7,
+    roughness: 0.1,
+    envMap: envMapTexture
 });
-material.side = _three.DoubleSide;
-//根据几何体，材质合成物体
-const cube = new _three.Mesh(cubeGeometry, material);
-//给cubeGeometry设置第二组uv
-cubeGeometry.setAttribute("uv2", new _three.BufferAttribute(cubeGeometry.attributes.uv.array, 2));
-// 添加到场景
-scene.add(cube);
-// 添加平面
-const planeGeometry = new _three.PlaneBufferGeometry(1, 1, 200, 200);
-const plane = new _three.Mesh(planeGeometry, material);
-plane.position.set(1.5, 0, 0);
-// 添加到场景
-scene.add(plane);
-// console.log('plane: ', plane);
-//给平面设置第二组uv
-planeGeometry.setAttribute("uv2", new _three.BufferAttribute(planeGeometry.attributes.uv.array, 2));
+// 合成物体
+const sphere = new _three.Mesh(sphereGeometry, material);
+scene.add(sphere);
 // 灯光
 // // AmbientLight(环境光，从四面八方打过来)
 // // color - (参数可选）颜色的rgb数值。缺省值为 0xffffff。

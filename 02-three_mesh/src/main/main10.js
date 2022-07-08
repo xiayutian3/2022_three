@@ -6,7 +6,7 @@ import gsap from "gsap";
 // 导入dat.gui库
 import * as dat from 'dat.gui';
 
-// 目标 环境贴图
+// 目标 设置粗糙度与粗糙度贴图 + 法线贴图
 
 // 1.创建场景
 const scene = new THREE.Scene();
@@ -21,71 +21,67 @@ const camera = new THREE.PerspectiveCamera(
 camera.position.set(0, 0, 10);
 scene.add(camera);
 
-//创建div插入body中,用于显示加载进度
-var div= document.createElement('div')
-div.style.width = "200px"
-div.style.height = "200px"
-div.style.position = "fixed"
-div.style.right = 0
-div.style.top = 0
-div.style.color = "#fff"
-document.body.appendChild(div)
-
-let event = {}
-// 单张纹理图的加载
-event.onLoad = function() {
-  console.log('图片加载完成')
-}
-// 进度
-event.onProgress = function(url, itemsLoaded, itemsTotal) {
-  // console.log('e: ', e);
-  console.log('图片加载完成: ', url);
-  console.log('图片加载进度',itemsLoaded)
-  console.log('图片加载总数',itemsTotal)
-  let value= (itemsLoaded/itemsTotal*100).toFixed(2)+ '%'
-  console.log('加载进度', value)
-  div.innerHTML = value
-}
-// 错误
-event.onError = function(e) {
-  console.log('e: ', e);
-  console.log('图片加载错误')
-}
-
-// 设置加载管理器(管理所有的资源加载)
-const loadingManager = new THREE.LoadingManager(
-  event.onLoad,
-  event.onProgress,
-  event.onError
+// 导入纹理
+const textureLoader = new THREE.TextureLoader();
+const doorColorTexture = textureLoader.load("./textures/door/color.jpg");
+// // 透明纹理
+const doorAlphaTexture = textureLoader.load("./textures/door/alpha.jpg");
+// 环境遮挡贴图
+const doorAoTexture = textureLoader.load(
+  "./textures/door/ambientOcclusion.jpg"
 );
-
-
-
-// 设置cube纹理加载器
-const cubeTextureLoader = new THREE.CubeTextureLoader(loadingManager);
-// 加载环境贴图
-const envMapTexture = cubeTextureLoader.load([
-  "textures/environmentMaps/1/px.jpg",
-  "textures/environmentMaps/1/nx.jpg",
-  "textures/environmentMaps/1/py.jpg",
-  "textures/environmentMaps/1/ny.jpg",
-  "textures/environmentMaps/1/pz.jpg",
-  "textures/environmentMaps/1/nz.jpg",
-])
+// 导入置换贴图
+const doorHeightTexture = textureLoader.load("./textures/door/height.jpg");
+// 导入粗糙度贴图
+const roughnessTexture = textureLoader.load("./textures/door/roughness.jpg")
+// 导入金属贴图
+const metalnessTexture = textureLoader.load("./textures/door/metalness.jpg")
+// 导入法线贴图
+const normalTexture = textureLoader.load("./textures/door/normal.jpg")
 
 
 // 4.添加物体
-// 创建 球 几何体
-const sphereGeometry = new THREE.SphereBufferGeometry(1,20,20)
-// 材质
-const material = new THREE.MeshStandardMaterial( {
-  metalness:0.7, //金属感
-  roughness:0.1, //光滑感
-  envMap:envMapTexture, //添加环境贴图
+// 创建几何体
+const cubeGeometry = new THREE.BoxBufferGeometry(1,1,1,100,100,100);
+//材质
+const material = new THREE.MeshStandardMaterial({ 
+  color:'#ffff00',
+  map:doorColorTexture,  //添加纹理
+  alphaMap:doorAlphaTexture, // 添加透明纹理
+  transparent: true,    //定义材质是否透明
+  // opacity:0.5, //设置透明度
+  // side: THREE.DoubleSide, //定义将要渲染哪一面 默认正面
+  aoMap: doorAoTexture,   //环境遮挡贴图
+  aoMapIntensity:1, //环境遮挡效果的强度。默认值为1。零是不遮挡效果
+  displacementMap:doorHeightTexture, //导入置换贴图
+  displacementScale :0.1, //导入置换贴图,突出程度
+  roughness:1, //修改材质的粗糙程度
+  roughnessMap:roughnessTexture,  //导入粗糙度贴图
+  metalness:1,  //材质与金属的相似度
+  metalnessMap:metalnessTexture,//导入金属贴图
+  normalMap:normalTexture,  //导入法线贴图
+
 })
-// 合成物体
-const sphere = new THREE.Mesh(sphereGeometry,material);
-scene.add(sphere)
+material.side = THREE.DoubleSide;
+//根据几何体，材质合成物体
+const cube = new THREE.Mesh( cubeGeometry, material)
+//给cubeGeometry设置第二组uv
+cubeGeometry.setAttribute('uv2',new THREE.BufferAttribute(cubeGeometry.attributes.uv.array,2))
+// 添加到场景
+scene.add(cube)
+
+// 添加平面
+const planeGeometry = new THREE.PlaneBufferGeometry(1,1,200,200)
+const plane = new THREE.Mesh(
+  planeGeometry,
+  material
+)
+plane.position.set(1.5,0,0)
+// 添加到场景
+scene.add(plane)
+// console.log('plane: ', plane);
+//给平面设置第二组uv
+planeGeometry.setAttribute('uv2',new THREE.BufferAttribute(planeGeometry.attributes.uv.array,2))
 
 
 // 灯光
