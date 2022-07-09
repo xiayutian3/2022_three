@@ -8,13 +8,20 @@ import * as dat from 'dat.gui';
 //导入数据加载器
 import {RGBELoader} from "three/examples/jsm/loaders/RGBELoader"
 
-// 目标 灯光与阴影
-// 1.材质要满足能够对光照有反应
-// 2.设置渲染器开启阴影的计算 renderer.shadowMap.enabled = true
-// 3.设置光照投射阴影 directionalLight.castShadow = true
-// 4.设置物体投射阴影 sphere.castShadow = true
-// 5.设置物体接受阴影 plane.receiveShadow = true 
+// 加载hdr 环境图(单张图)
+const rgbeLoader = new RGBELoader()
+//因为加载的资源比较大，所以异步加载
+rgbeLoader.loadAsync("textures/hdr/002.hdr").then(textures => {
+  // 背景是球形的
+  textures.mapping = THREE.EquirectangularReflectionMapping
+  // 设置背景
+  scene.background = textures;
+  // 设置环境的纹理
+  scene.environment = textures
+})
 
+
+// 目标  hdr环境贴图
 
 // 1.创建场景
 const scene = new THREE.Scene();
@@ -29,26 +36,75 @@ const camera = new THREE.PerspectiveCamera(
 camera.position.set(0, 0, 10);
 scene.add(camera);
 
+//创建div插入body中,用于显示加载进度
+var div= document.createElement('div')
+div.style.width = "200px"
+div.style.height = "200px"
+div.style.position = "fixed"
+div.style.right = 0
+div.style.top = 0
+div.style.color = "#fff"
+document.body.appendChild(div)
+
+let event = {}
+// 单张纹理图的加载
+event.onLoad = function() {
+  console.log('图片加载完成')
+}
+// 进度
+event.onProgress = function(url, itemsLoaded, itemsTotal) {
+  // console.log('e: ', e);
+  console.log('图片加载完成: ', url);
+  console.log('图片加载进度',itemsLoaded)
+  console.log('图片加载总数',itemsTotal)
+  let value= (itemsLoaded/itemsTotal*100).toFixed(2)+ '%'
+  console.log('加载进度', value)
+  div.innerHTML = value
+}
+// 错误
+event.onError = function(e) {
+  console.log('e: ', e);
+  console.log('图片加载错误')
+}
+
+// 设置加载管理器(管理所有的资源加载)
+const loadingManager = new THREE.LoadingManager(
+  event.onLoad,
+  event.onProgress,
+  event.onError
+);
+
+
+
+// 设置cube纹理加载器
+const cubeTextureLoader = new THREE.CubeTextureLoader(loadingManager);
+// 加载环境贴图
+const envMapTexture = cubeTextureLoader.load([
+  "textures/environmentMaps/1/px.jpg",
+  "textures/environmentMaps/1/nx.jpg",
+  "textures/environmentMaps/1/py.jpg",
+  "textures/environmentMaps/1/ny.jpg",
+  "textures/environmentMaps/1/pz.jpg",
+  "textures/environmentMaps/1/nz.jpg",
+])
+
 
 // 4.添加物体
 // 创建 球 几何体
 const sphereGeometry = new THREE.SphereBufferGeometry(1,20,20)
 // 材质
-const material = new THREE.MeshStandardMaterial()
+const material = new THREE.MeshStandardMaterial( {
+  metalness:0.7, //金属感
+  roughness:0.1, //光滑感
+  // envMap:envMapTexture, //添加环境贴图
+})
 // 合成物体
 const sphere = new THREE.Mesh(sphereGeometry,material);
-// 投射阴影
-sphere.castShadow = true;
 scene.add(sphere)
-
-//创建平面
-const planeGeometry = new THREE.PlaneBufferGeometry(10,10)
-const plane = new THREE.Mesh(planeGeometry,material)
-plane.position.set(0,-1,0)
-plane.rotation.x = -Math.PI / 2
-// 接受阴影
-plane.receiveShadow = true;
-scene.add(plane)
+// 添加场景的背景贴图
+scene.background = envMapTexture
+// 给场景所有的物体添加默认的环境贴图（就是根据背景映射到物体上边，显示出的东西，就像照镜子一样）
+scene.environment = envMapTexture
 
 
 // 灯光
@@ -61,8 +117,6 @@ scene.add(light);
 const directionalLight = new THREE.DirectionalLight( 0xffffff, 0.5 );
 //设置位置
 directionalLight.position.set(10,10,10)
-//开启灯光的阴影
-directionalLight.castShadow = true
 scene.add(directionalLight);
 
 
@@ -72,8 +126,6 @@ const renderer = new THREE.WebGLRenderer();
 // 设置渲染器尺寸大小
 renderer.setSize(window.innerWidth, window.innerHeight);
 // console.log('renderer: ', renderer);
-//开启场景中的阴影贴图
-renderer.shadowMap.enabled = true
 
 //将webgl渲染的canvas内容添加到body
 document.body.appendChild(renderer.domElement);
