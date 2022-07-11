@@ -543,12 +543,7 @@ var _gsapDefault = parcelHelpers.interopDefault(_gsap);
 var _datGui = require("dat.gui");
 //导入数据加载器
 var _rgbeloader = require("three/examples/jsm/loaders/RGBELoader");
-// 目标 灯光与阴影
-// 1.材质要满足能够对光照有反应
-// 2.设置渲染器开启阴影的计算 renderer.shadowMap.enabled = true
-// 3.设置光照投射阴影 directionalLight.castShadow = true
-// 4.设置物体投射阴影 sphere.castShadow = true
-// 5.设置物体接受阴影 plane.receiveShadow = true 
+// 目标 聚光灯
 // 1.创建场景
 const scene = new _three.Scene();
 // 2.创建相机（透视相机）
@@ -568,7 +563,7 @@ const sphere = new _three.Mesh(sphereGeometry, material);
 sphere.castShadow = true;
 scene.add(sphere);
 //创建平面
-const planeGeometry = new _three.PlaneBufferGeometry(10, 10);
+const planeGeometry = new _three.PlaneBufferGeometry(50, 50);
 const plane = new _three.Mesh(planeGeometry, material);
 plane.position.set(0, -1, 0);
 plane.rotation.x = -Math.PI / 2;
@@ -581,13 +576,38 @@ scene.add(plane);
 // //   intensity - (参数可选)光照的强度。缺省值为 1。
 const light = new _three.AmbientLight(0xffffff, 0.5); // soft white light
 scene.add(light);
-// 直线光源 平行光 （如太阳）
-const directionalLight = new _three.DirectionalLight(0xffffff, 0.5);
+// 聚光灯
+const spotLight = new _three.SpotLight(0xffffff, 0.5);
+// 设置亮度
+spotLight.intensity = 2;
 //设置位置
-directionalLight.position.set(10, 10, 10);
+spotLight.position.set(5, 5, 5);
 //开启灯光的阴影
-directionalLight.castShadow = true;
-scene.add(directionalLight);
+spotLight.castShadow = true;
+// 设置阴影贴图的模糊度
+spotLight.shadow.radius = 20;
+// 设置阴影贴图的分辨率
+spotLight.shadow.mapSize.set(4096, 4096);
+// 设置目标打到球上
+spotLight.target = sphere;
+// 设置聚光灯的角度
+spotLight.angle = Math.PI / 6;
+// 从光源发出光的最大距离，其强度根据光源的距离线性衰减
+spotLight.distance = 0;
+// 聚光锥的半影衰减百分比
+spotLight.penumbra = 0;
+// 沿着光照距离的衰减量
+spotLight.decay = 0;
+// 设置透视相机的属性
+scene.add(spotLight);
+// 创建gui界面
+const gui = new _datGui.GUI();
+// 调节x变量
+gui.add(sphere.position, "x").min(-5).max(5).step(0.1);
+gui.add(spotLight, "angle").min(0).max(Math.PI / 2).step(0.01);
+gui.add(spotLight, "distance").min(0).max(10).step(0.01);
+gui.add(spotLight, "penumbra").min(0).max(1).step(0.01);
+gui.add(spotLight, "decay").min(0).max(5).step(0.01);
 // 5.初始化渲染器
 const renderer = new _three.WebGLRenderer();
 // 设置渲染器尺寸大小
@@ -595,6 +615,8 @@ renderer.setSize(window.innerWidth, window.innerHeight);
 // console.log('renderer: ', renderer);
 //开启场景中的阴影贴图
 renderer.shadowMap.enabled = true;
+// 是否使用物理上正确的光照模式,用于查看spotLight.decay
+renderer.physicallyCorrectLights = true;
 //将webgl渲染的canvas内容添加到body
 document.body.appendChild(renderer.domElement);
 // // 6.使用渲染器，通过相机将场景渲染进来
