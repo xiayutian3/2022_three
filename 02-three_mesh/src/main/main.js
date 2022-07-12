@@ -8,7 +8,7 @@ import * as dat from 'dat.gui';
 //导入数据加载器
 import {RGBELoader} from "three/examples/jsm/loaders/RGBELoader"
 
-// 目标 聚光灯
+// 目标 点光源
 
 
 // 1.创建场景
@@ -46,48 +46,52 @@ plane.receiveShadow = true;
 scene.add(plane)
 
 
+// 设置小球绑定灯光
+const smallBall = new THREE.Mesh(
+  new THREE.SphereBufferGeometry(0.1,20,20),
+  new THREE.MeshBasicMaterial({color:0xff0000})
+)
+smallBall.position.set(2,2,2)
+
 // 灯光
 // // AmbientLight(环境光，从四面八方打过来)
 // // color - (参数可选）颜色的rgb数值。缺省值为 0xffffff。
 // //   intensity - (参数可选)光照的强度。缺省值为 1。
 const light = new THREE.AmbientLight( 0xffffff,0.5 ); // soft white light
 scene.add(light);
-// 聚光灯
-const spotLight  = new THREE.SpotLight( 0xffffff, 0.5 );
-// 设置亮度
-spotLight.intensity = 2
+// 点光源
+const pointLight  = new THREE.PointLight( 0xff0000, 1 );
+// 设置亮度 光的强度
+// spotLight.intensity = 2
 //设置位置
-spotLight.position.set(5,5,5)
+// pointLight.position.set(2,2,2)
 //开启灯光的阴影
-spotLight.castShadow = true
+pointLight.castShadow = true
 
 // 设置阴影贴图的模糊度
-spotLight.shadow.radius = 20
+pointLight.shadow.radius = 20
 // 设置阴影贴图的分辨率
-spotLight.shadow.mapSize.set(4096,4096)
-// 设置目标打到球上
-spotLight.target = sphere
-// 设置聚光灯的角度
-spotLight.angle = Math.PI/6
-// 从光源发出光的最大距离，其强度根据光源的距离线性衰减
-spotLight.distance = 0
-// 聚光锥的半影衰减百分比
-spotLight.penumbra = 0
-// 沿着光照距离的衰减量
-spotLight.decay = 0
+pointLight.shadow.mapSize.set(4096,4096)
 
-// 设置透视相机的属性
 
-scene.add(spotLight);
+// // 从光源发出光的最大距离，其强度根据光源的距离线性衰减
+// pointLight.distance = 0
+// // 沿着光照距离的衰减量
+// pointLight.decay = 0
+
+//将小球和灯光绑定在一起
+smallBall.add(pointLight)
+// scene.add(pointLight);
+scene.add(smallBall);
+
+
 
 // 创建gui界面
 const gui = new dat.GUI()
 // 调节x变量
-gui.add(sphere.position,"x").min(-5).max(5).step(0.1)
-gui.add(spotLight,"angle").min(0).max( Math.PI/2).step(0.01)
-gui.add(spotLight,"distance").min(0).max(10).step(0.01)
-gui.add(spotLight,"penumbra").min(0).max(1).step(0.01)
-gui.add(spotLight,"decay").min(0).max(5).step(0.01)
+gui.add(smallBall.position,"x").min(-5).max(5).step(0.1)
+gui.add(pointLight,"distance").min(0).max(10).step(0.01)
+gui.add(pointLight,"decay").min(0).max(5).step(0.01)
 
 
 
@@ -131,6 +135,12 @@ window.addEventListener("dblclick", () => {
 });
 
 function render() {
+  // 灯光运动(圆周运动)
+  let time = clock.getElapsedTime()
+  smallBall.position.x = Math.sin(time)*3
+  smallBall.position.z = Math.cos(time)*3
+  // smallBall.position.y = 2 + Math.sin(time*10)
+
   // 移动真实感
   controls.update();
   renderer.render(scene, camera);
